@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Coffee Atlas",
+    "slug": "coffee-atlas",
+    "version": "1.0.0",
+    "scheme": "coffee-atlas",
+    "userInterfaceStyle": "light",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.coffeeatlas.app"
+    },
+    "android": {
+      "package": "com.coffeeatlas.app",
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.VIBRATE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-status-bar"
+    ]
+  }
+}
