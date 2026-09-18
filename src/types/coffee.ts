@@ -2,6 +2,7 @@ export type CoffeeLot = {
   id: string;
   name: string;
   roaster: string;
+  photoPath: string | null;
   country: string | null;
   region: string | null;
   process: string | null;

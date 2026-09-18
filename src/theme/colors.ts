@@ -7,4 +7,11 @@ export const colors = {
   muted: "#8B867B",
   divider: "#DDD7CB",
   descriptorSurface: "#EEE9DE",
+  detailSurface: "#F0EBE1",
+  flavorPink: "#F4E5E8",
+  flavorPeach: "#FBE7D7",
+  flavorGreen: "#ECEFD9",
+  bag: "#EDE5D5",
+  bagEdge: "#D5CCBA",
+  bagLandscape: "#BCC1AC",
 };

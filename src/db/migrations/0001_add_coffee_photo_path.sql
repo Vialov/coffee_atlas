@@ -1,0 +1,1 @@
+ALTER TABLE `coffee_lots` ADD `photo_path` text;

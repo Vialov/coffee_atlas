@@ -17,3 +17,4 @@ ios/
 *.sqlite
 *.sqlite3
 *.tsbuildinfo
+*.idea

@@ -88,6 +88,7 @@ describe("persistent coffee initialization and repository", () => {
       roastDate: "2026-08-28",
       packageDescriptors: ["jasmine", "peach", "bergamot"],
       rating: 4.5,
+      photoPath: null,
     });
     expect(coffees[1]).toMatchObject({
       roaster: "Hotel Belgrade",
@@ -132,7 +133,52 @@ describe("persistent coffee initialization and repository", () => {
       sqlite
         .prepare("SELECT count(*) AS total FROM __drizzle_migrations")
         .get(),
-    ).toMatchObject({ total: 1 });
+    ).toMatchObject({ total: 2 });
+  });
+  it("upgrades the original database without changing existing coffee data", async () => {
+    const { getDatabase, configureDatabase } = await import("../src/db/client");
+    const { migrate } = await import("drizzle-orm/expo-sqlite/migrator");
+    const { default: migrations } =
+      await import("../src/db/migrations/migrations");
+    configureDatabase();
+    await migrate(getDatabase(), {
+      journal: {
+        ...migrations.journal,
+        entries: migrations.journal.entries.slice(0, 1),
+      },
+      migrations: { m0000: migrations.migrations.m0000 },
+    });
+    sqlite.exec(`INSERT INTO coffee_lots
+      (id, name, roaster, package_descriptors, rating, created_at, updated_at)
+      VALUES ('user-lot', 'My coffee', 'My roaster', '["peach"]', 0, '2026-01-01', '2026-01-02')`);
+    const before = sqlite.prepare("SELECT * FROM coffee_lots").get();
+    const repo = await start();
+    expect(sqlite.prepare("SELECT * FROM coffee_lots").get()).toEqual({
+      ...before,
+      photo_path: null,
+    });
+    expect(await repo.getCoffeeLotById("user-lot")).toMatchObject({
+      rating: 0,
+      photoPath: null,
+      packageDescriptors: ["peach"],
+    });
+    sqlite
+      .prepare("UPDATE coffee_lots SET photo_path = ? WHERE id = ?")
+      .run("coffee-photos/user-lot.jpg", "user-lot");
+    sqlite.close();
+    sqlite = new DatabaseSync(databasePath);
+    vi.resetModules();
+    const reopened = await start();
+    expect(await reopened.getCoffeeLotById("user-lot")).toMatchObject({
+      photoPath: "coffee-photos/user-lot.jpg",
+      rating: 0,
+    });
+    expect(await reopened.getAllCoffeeLots()).toHaveLength(1);
+    expect(
+      sqlite
+        .prepare("SELECT count(*) AS total FROM __drizzle_migrations")
+        .get(),
+    ).toMatchObject({ total: 2 });
   });
   it("does not insert seeds into an existing nonempty database", async () => {
     await start();

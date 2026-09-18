@@ -41,7 +41,7 @@ export default function RootLayout() {
           />
           <Stack.Screen
             name="coffee/[id]"
-            options={{ title: "Coffee Detail", headerBackTitle: "Coffee Log" }}
+            options={{ title: "", headerBackButtonDisplayMode: "minimal" }}
           />
         </Stack>
       ) : (

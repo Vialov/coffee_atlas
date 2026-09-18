@@ -56,6 +56,14 @@ boundary. Dates use ISO strings; roast dates are displayed in UTC to avoid day s
 List order is creation time ascending, then UUID ascending. Optional fields are omitted
 when absent. English interface labels preserve the original Russian tasting notes.
 
+`photo_path` is nullable and stores a relative path inside the app's persistent
+Documents directory (for example, `coffee-photos/lot-id.jpg`). `CoffeeLot.photoPath`
+exposes it to the detail screen, which resolves it against the current Documents
+directory using `expo-file-system`. Missing or unreadable photos show a locally
+drawn package labeled with the lot's data. Future photo import must copy files
+into Documents before storing their relative paths; temporary picker URIs and
+remote URLs are not supported. Photo selection and editing are not yet implemented.
+
 To change the schema:
 
 1. Edit `src/db/schema.ts`.
@@ -78,7 +86,7 @@ header back and Android hardware back; relaunch and confirm persisted IDs/count;
 open an unknown ID; check large text and narrow screens; launch an installed release
 offline. iOS and Android bundle success alone is not device verification.
 
-Out of scope: adding/editing/deleting, photos, search/filters, maps, OCR, AI,
+Out of scope: adding/editing/deleting, photo capture/import, search/filters, maps, OCR, AI,
 authentication, synchronization, and brewing history.
 
 ### Iteration 1 validation
