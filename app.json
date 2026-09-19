@@ -25,7 +25,15 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose package photos for your coffee journal.",
+          "cameraPermission": "Take package photos for your coffee journal.",
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }

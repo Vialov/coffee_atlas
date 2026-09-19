@@ -8,6 +8,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // native bridge is replaced; SQL, transactions, seeding, and mapping are real.
 const native = vi.hoisted(() => ({ openDatabaseSync: vi.fn() }));
 vi.mock("expo-sqlite", () => native);
+vi.mock("expo-crypto", async () => ({
+  randomUUID: (await import("node:crypto")).randomUUID,
+}));
 let sqlite: DatabaseSync;
 let directory: string;
 let databasePath: string;
@@ -133,7 +136,7 @@ describe("persistent coffee initialization and repository", () => {
       sqlite
         .prepare("SELECT count(*) AS total FROM __drizzle_migrations")
         .get(),
-    ).toMatchObject({ total: 2 });
+    ).toMatchObject({ total: 3 });
   });
   it("upgrades the original database without changing existing coffee data", async () => {
     const { getDatabase, configureDatabase } = await import("../src/db/client");
@@ -178,7 +181,7 @@ describe("persistent coffee initialization and repository", () => {
       sqlite
         .prepare("SELECT count(*) AS total FROM __drizzle_migrations")
         .get(),
-    ).toMatchObject({ total: 2 });
+    ).toMatchObject({ total: 3 });
   });
   it("does not insert seeds into an existing nonempty database", async () => {
     await start();
@@ -233,5 +236,78 @@ describe("persistent coffee initialization and repository", () => {
       throw new Error("Cannot open database");
     });
     await expect(start()).rejects.toThrow("Cannot open database");
+  });
+});
+
+describe("lot CRUD persistence", () => {
+  it("creates a name-only lot, edits every field, and preserves changes on reopen", async () => {
+    const repo = await start();
+    const { emptyLot } = await import("../src/utils/lotForm");
+    const id = await repo.createCoffeeLot({
+      ...emptyLot,
+      name: "  New coffee  ",
+    });
+    expect(id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    const created = await repo.getCoffeeLotById(id);
+    expect(created).toMatchObject({ ...emptyLot, name: "New coffee", id });
+    const changed = {
+      ...emptyLot,
+      name: "Edited",
+      roaster: "Roaster",
+      country: "Foo Island",
+      region: "North",
+      process: "Experimental",
+      variety: "Bourbon",
+      roastDate: "2026-09-18",
+      rating: 4.299999,
+      packageDescriptors: [" peach ", "PEACH", "jasmine"],
+      myImpression: "Чистая чашка",
+      photoPath: "coffee-photos/test.jpg",
+    };
+    await repo.updateCoffeeLot(id, changed);
+    sqlite.close();
+    sqlite = new DatabaseSync(databasePath);
+    vi.resetModules();
+    const reopened = await start();
+    expect(await reopened.getCoffeeLotById(id)).toMatchObject({
+      ...changed,
+      rating: 4.3,
+      packageDescriptors: ["peach", "jasmine"],
+      createdAt: created!.createdAt,
+    });
+    await reopened.updateCoffeeLot(id, { ...emptyLot, name: "Only name" });
+    expect(await reopened.getCoffeeLotById(id)).toMatchObject({
+      ...emptyLot,
+      name: "Only name",
+    });
+  });
+  it("does not resurrect deleted lots when the empty journal reopens", async () => {
+    const repo = await start();
+    for (const lot of await repo.getAllCoffeeLots())
+      await repo.deleteCoffeeLot(lot.id);
+    sqlite.close();
+    sqlite = new DatabaseSync(databasePath);
+    vi.resetModules();
+    const reopened = await start();
+    expect(await reopened.getAllCoffeeLots()).toEqual([]);
+  });
+  it("rejects blank names and propagates failed writes without changing saved data", async () => {
+    const repo = await start();
+    const { emptyLot } = await import("../src/utils/lotForm");
+    await expect(
+      repo.createCoffeeLot({ ...emptyLot, name: "  " }),
+    ).rejects.toThrow();
+    const lot = (await repo.getAllCoffeeLots())[0]!;
+    failSql = 'update "coffee_lots"';
+    await expect(
+      repo.updateCoffeeLot(lot.id, { ...emptyLot, name: "Changed" }),
+    ).rejects.toThrow();
+    expect(await repo.getCoffeeLotById(lot.id)).toEqual(lot);
+    failSql = undefined;
+    await expect(
+      repo.updateCoffeeLot("missing", { ...emptyLot, name: "Changed" }),
+    ).rejects.toThrow("no longer exists");
   });
 });

@@ -16,3 +16,8 @@ export const coffeeLots = sqliteTable("coffee_lots", {
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
+
+// Records initialization independently of lot count so deleting all lots is durable.
+export const journalState = sqliteTable("journal_state", {
+  key: text("key").primaryKey().notNull(),
+});

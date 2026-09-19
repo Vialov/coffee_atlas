@@ -1,7 +1,6 @@
 # Coffee Atlas
 
-A small, local-first specialty coffee journal for iOS and Android. Iteration 1
-contains a coffee list and a detail screen, with two seeded lots. No account,
+A small, local-first specialty coffee journal for iOS and Android. Includes a coffee list, detail screen, and a shared add/edit form, with two sample lots on first launch. No account,
 backend, remote images, or runtime data connection is required.
 
 ## Setup
@@ -34,10 +33,10 @@ is needed to use the resulting app. Generated native directories are ignored.
 
 ## Structure and stack
 
-- `app/`: Expo Router native stack, `/` list and `/coffee/[id]` detail.
+- `app/`: Expo Router native stack, `/` list, `/coffee/[id]` detail, and `/lot-form` create/edit.
 - `src/components/`, `src/theme/`: reusable cards, chips, sections, and central visual tokens.
 - `src/db/`: Drizzle SQLite schema, connection, startup, migrations, and seed mechanism.
-- `src/repositories/`: typed database reads and JSON-to-domain mapping.
+- `src/repositories/`: typed CRUD operations and JSON-to-domain mapping.
 - `src/types/`: application domain types.
 
 React Native, Expo, strict TypeScript, expo-sqlite, and Drizzle ORM/Kit. React DOM
@@ -47,7 +46,9 @@ and animation packages satisfy Expo Router's compatible peers; web is not a targ
 
 The app automatically opens `coffee-atlas.db`, enables foreign keys and WAL,
 applies bundled Drizzle migrations, and inserts the two seeds in a transaction
-only when `coffee_lots` is empty. Rendering waits for that entire sequence.
+only when `coffee_lots` is empty and initialization has not been recorded. A versioned
+`journal_state` table records initialization in the same transaction, so deleting all
+lots leaves an empty journal on subsequent launches. Rendering waits for that sequence.
 Repeated startup does not duplicate seeds or recreate data. A startup failure
 shows an error without resetting storage.
 
@@ -60,9 +61,9 @@ when absent. English interface labels preserve the original Russian tasting note
 Documents directory (for example, `coffee-photos/lot-id.jpg`). `CoffeeLot.photoPath`
 exposes it to the detail screen, which resolves it against the current Documents
 directory using `expo-file-system`. Missing or unreadable photos show a locally
-drawn package labeled with the lot's data. Future photo import must copy files
-into Documents before storing their relative paths; temporary picker URIs and
-remote URLs are not supported. Photo selection and editing are not yet implemented.
+drawn package labeled with the lot's data. The form supports camera capture and gallery
+selection, copying the image to Documents on save. Replaced/deleted photos are
+removed after a successful database write; canceled form edits do not copy files.
 
 To change the schema:
 
@@ -86,7 +87,7 @@ header back and Android hardware back; relaunch and confirm persisted IDs/count;
 open an unknown ID; check large text and narrow screens; launch an installed release
 offline. iOS and Android bundle success alone is not device verification.
 
-Out of scope: adding/editing/deleting, photo capture/import, search/filters, maps, OCR, AI,
+Out of scope: list search/filters, maps, OCR, AI,
 authentication, synchronization, and brewing history.
 
 ### Iteration 1 validation
@@ -101,3 +102,25 @@ the SQLite regression suite, not by direct modification of the emulator's databa
 An iOS native build/runtime check is still needed on a machine with full Xcode.
 The stable dependency tree currently reports 17 moderate npm audit findings;
 the suggested forced fixes include incompatible major downgrades and were not applied.
+
+### Add / edit lot
+
+Use the floating + on the list or the pencil on a detail screen. Only the name is
+required. The shared form supports a bundled searchable country list (including
+custom text), processing choices, removable flavor notes, an optional native roast
+date picker, optional photos, decimal ratings, and multiline impressions. Clear
+controls restore optional dates/ratings to null. Back navigation confirms unsaved
+changes; deletion requires confirmation. Lists and details reload SQLite on focus.
+
+CRUD regression tests cover name-only insertion, complete updates, failed writes,
+UUIDs, reopen persistence, and deleting every lot without reseeding. The country
+list is bundled because Android Hermes does not provide Intl.DisplayNames.
+
+### Add / edit validation
+
+TypeScript, lint, 29 automated tests, Expo startup, and both platform bundle exports
+pass. Android Expo Go checks covered name-only creation, immediate list/detail
+refresh, edit prefill, custom country entry, discard confirmation, rating buttons
+and slider, date selection/clearing, cold-relaunch persistence, and confirmed
+deletion. The temporary test lot was removed afterward. Actual camera/gallery
+capture and iOS runtime checks remain unverified; iOS requires full Xcode.

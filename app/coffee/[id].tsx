@@ -1,6 +1,12 @@
-import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
 import {
+  router,
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+} from "expo-router";
+import { useCallback, useState } from "react";
+import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,17 +23,7 @@ import type { CoffeeLot } from "../../src/types/coffee";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { journalSerif, typography } from "../../src/theme/typography";
-function formatRoastDate(value: string) {
-  const date = new Date(value.length === 10 ? `${value}T00:00:00Z` : value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        timeZone: "UTC",
-      });
-}
+import { formatRoastDate } from "../../src/utils/lotForm";
 export default function CoffeeDetail() {
   const { width, fontScale } = useWindowDimensions();
   const stacked = width < 360 || fontScale > 1;
@@ -39,30 +35,32 @@ export default function CoffeeDetail() {
     coffee: CoffeeLot | null;
     error: boolean;
   } | null>(null);
-  useEffect(() => {
-    let active = true;
-    getCoffeeLotById(id)
-      .then((coffee) => {
-        if (active)
-          setResult({
-            id,
-            coffee,
-            error: false,
-          });
-      })
-      .catch((cause: unknown) => {
-        console.error("Coffee detail could not be loaded", cause);
-        if (active)
-          setResult({
-            id,
-            coffee: null,
-            error: true,
-          });
-      });
-    return () => {
-      active = false;
-    };
-  }, [id]);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      getCoffeeLotById(id)
+        .then((coffee) => {
+          if (active)
+            setResult({
+              id,
+              coffee,
+              error: false,
+            });
+        })
+        .catch((cause: unknown) => {
+          console.error("Coffee detail could not be loaded", cause);
+          if (active)
+            setResult({
+              id,
+              coffee: null,
+              error: true,
+            });
+        });
+      return () => {
+        active = false;
+      };
+    }, [id]),
+  );
   if (!result || result.id !== id)
     return <LoadState loading message="Loading coffee…" />;
   if (result.error)
@@ -74,6 +72,22 @@ export default function CoffeeDetail() {
   const origin = [coffee.country, coffee.region].filter(Boolean).join(" · ");
   return (
     <SafeAreaView style={styles.screen} edges={["bottom", "left", "right"]}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Edit lot"
+              onPress={() =>
+                router.push({ pathname: "/lot-form", params: { lotId: id } })
+              }
+              style={{ padding: 10, minWidth: 44, minHeight: 44 }}
+            >
+              <Text style={{ fontSize: 26, color: colors.primary }}>✎</Text>
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={[styles.hero, stacked && styles.stacked]}>
           <View style={styles.heading}>
