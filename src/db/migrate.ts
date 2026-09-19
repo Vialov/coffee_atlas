@@ -1,14 +1,14 @@
 import { migrate } from "drizzle-orm/expo-sqlite/migrator";
 import { configureDatabase, getDatabase } from "./client";
 import migrations from "./migrations/migrations";
-import { seedDatabaseIfEmpty } from "./seed";
+import { seedDevDataIfEmpty } from "./seed/devSeed";
 
 let initialization: Promise<void> | undefined;
 export function initializeDatabase(): Promise<void> {
   initialization ??= (async () => {
     configureDatabase();
     await migrate(getDatabase(), migrations);
-    await seedDatabaseIfEmpty();
+    if (__DEV__) await seedDevDataIfEmpty();
   })();
   return initialization;
 }

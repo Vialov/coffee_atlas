@@ -1,6 +1,6 @@
 import { count } from "drizzle-orm";
-import { getDatabase } from "./client";
-import { coffeeLots, journalState } from "./schema";
+import { getDatabase } from "../client";
+import { coffeeLots, journalState } from "../schema";
 
 const timestamp = "2026-09-08T00:00:00.000Z";
 const seeds: (typeof coffeeLots.$inferInsert)[] = [
@@ -38,8 +38,8 @@ const seeds: (typeof coffeeLots.$inferInsert)[] = [
   },
 ];
 
-export async function seedDatabaseIfEmpty() {
-  // Expo's synchronous transaction callback keeps the check and both writes atomic.
+export async function seedDevDataIfEmpty() {
+  // The marker makes deleting every lot durable across development relaunches.
   getDatabase().transaction((tx) => {
     if (tx.select().from(journalState).get()) return;
     const result = tx.select({ value: count() }).from(coffeeLots).get();

@@ -55,6 +55,7 @@ function bridge() {
 }
 beforeEach(() => {
   vi.resetModules();
+  vi.stubGlobal("__DEV__", true);
   directory = mkdtempSync(join(tmpdir(), "coffee-atlas-test-"));
   databasePath = join(directory, "coffee-atlas.db");
   sqlite = new DatabaseSync(databasePath);
@@ -63,6 +64,7 @@ beforeEach(() => {
   native.openDatabaseSync.mockReset().mockImplementation(bridge);
 });
 afterEach(() => {
+  vi.unstubAllGlobals();
   sqlite.close();
   rmSync(directory, { recursive: true, force: true });
 });
@@ -117,6 +119,22 @@ describe("persistent coffee initialization and repository", () => {
     expect(migrationIndex).toBeGreaterThan(-1);
     expect(seedIndex).toBeGreaterThan(migrationIndex);
   });
+  it("migrates a fresh release database without inserting development lots", async () => {
+    vi.stubGlobal("__DEV__", false);
+    const repo = await start();
+    expect(await repo.getAllCoffeeLots()).toEqual([]);
+    expect(
+      sqlite
+        .prepare("SELECT count(*) AS total FROM __drizzle_migrations")
+        .get(),
+    ).toMatchObject({ total: 3 });
+    expect(
+      sqlite.prepare("SELECT count(*) AS total FROM journal_state").get(),
+    ).toMatchObject({ total: 0 });
+    expect(
+      executed.some((sql) => sql.startsWith('insert into "coffee_lots"')),
+    ).toBe(false);
+  });
   it("shares concurrent initialization and preserves IDs and data across startup", async () => {
     const { initializeDatabase } = await import("../src/db/migrate");
     const first = initializeDatabase();
@@ -155,6 +173,7 @@ describe("persistent coffee initialization and repository", () => {
       (id, name, roaster, package_descriptors, rating, created_at, updated_at)
       VALUES ('user-lot', 'My coffee', 'My roaster', '["peach"]', 0, '2026-01-01', '2026-01-02')`);
     const before = sqlite.prepare("SELECT * FROM coffee_lots").get();
+    vi.stubGlobal("__DEV__", false);
     const repo = await start();
     expect(sqlite.prepare("SELECT * FROM coffee_lots").get()).toEqual({
       ...before,
@@ -225,8 +244,8 @@ describe("persistent coffee initialization and repository", () => {
     sqlite.exec(
       "CREATE TRIGGER reject_second BEFORE INSERT ON coffee_lots WHEN NEW.name = 'Colombia El Mirador' BEGIN SELECT RAISE(ABORT, 'seed failure'); END;",
     );
-    const { seedDatabaseIfEmpty } = await import("../src/db/seed");
-    await expect(seedDatabaseIfEmpty()).rejects.toThrow();
+    const { seedDevDataIfEmpty } = await import("../src/db/seed/devSeed");
+    await expect(seedDevDataIfEmpty()).rejects.toThrow();
     expect(
       sqlite.prepare("SELECT count(*) AS total FROM coffee_lots").get(),
     ).toMatchObject({ total: 0 });
