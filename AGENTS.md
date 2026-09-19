@@ -1,7 +1,8 @@
 # Coffee Atlas
 
 Local-first personal specialty coffee journal, built with Expo, React Native,
-TypeScript, Expo Router, expo-sqlite, and Drizzle. Targets iOS and Android.
+TypeScript, Expo Router, expo-sqlite, and Drizzle. Android is the primary release
+target; iOS remains supported.
 
 ## Current scope
 
@@ -11,12 +12,14 @@ editing, authentication, or backend features unless explicitly requested.
 ## Engineering
 
 - SQLite is the source of truth; UI must never import seed fixtures.
-- Schema changes require generated, versioned migrations. Never silently recreate a database.
-- Never fix a persisted schema change by deleting or recreating the database. Every persisted schema change must be delivered as a new, generated, versioned migration.
+- Production data is local and must never be deleted or recreated by startup or migrations.
+- Demo records are development-only and must be guarded by `__DEV__`.
+- Schema changes require generated, versioned migrations that preserve existing user data.
 - Persist UUID entity IDs. Store descriptors as JSON text and expose `string[]`.
 - Keep components small and code straightforward; avoid generic infrastructure and state frameworks.
+- Avoid adding dependencies unless they provide a clear benefit.
 - Maintain both native platforms and keep all runtime data/assets offline.
-- Initialization opens the database, configures pragmas, migrates, then atomically seeds only an empty table.
+- Initialization opens the database, configures pragmas, migrates, then development builds may atomically seed an empty journal.
 
 ## Design
 

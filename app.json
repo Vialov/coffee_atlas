@@ -2,7 +2,8 @@
   "expo": {
     "name": "Coffee Atlas",
     "slug": "coffee-atlas",
-    "version": "1.0.0",
+    "version": "0.1.0",
+    "icon": "./icon.png",
     "scheme": "coffee-atlas",
     "userInterfaceStyle": "light",
     "platforms": [
@@ -14,7 +15,13 @@
       "bundleIdentifier": "com.coffeeatlas.app"
     },
     "android": {
-      "package": "com.coffeeatlas.app",
+      "package": "com.vialov.coffeeatlas",
+      "versionCode": 1,
+      "icon": "./icon.png",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon-adaptive-foreground.png",
+        "backgroundColor": "#F6F2E9"
+      },
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -34,6 +41,12 @@
           "microphonePermission": false
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9704ba02-f441-42fe-b2a5-1c08edc62d43"
+      }
+    }
   }
 }
